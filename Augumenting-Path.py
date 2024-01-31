@@ -2,12 +2,11 @@ import heapq
 import random
 from copy import deepcopy
 from Graph import generate_source_sink_graph
-from tabulate import tabulate
 
 def ford_fulkerson(graph, source, sink, augmenting_path_algorithm):
     residual_graph = deepcopy(graph)
     row = len(graph)
-    parent = [-1]*row
+    parent = [-1] * row
     max_flow = 0
     augmenting_paths = []
 
@@ -15,7 +14,7 @@ def ford_fulkerson(graph, source, sink, augmenting_path_algorithm):
         augmenting_path = augmenting_path_algorithm(residual_graph, source, sink)
         if not augmenting_path:
             break
-        
+
         augmenting_paths.append(augmenting_path)
         bottleneck_capacity = 500000
         for (u, v, cap) in augmenting_path:
@@ -41,9 +40,10 @@ def ford_fulkerson(graph, source, sink, augmenting_path_algorithm):
     # Mean Proportional Length (MPL)
     max_length = max(len(path) for path in augmenting_paths)
     total_proportional_length = sum(len(path) / max_length for path in augmenting_paths)
-    mean_proportional_length = total_proportional_length / paths
+    mean_proportional_length = mean_length / max_length
 
     return max_flow, paths, mean_length, mean_proportional_length
+
 
 def shortest_augmenting_path_old(graph, source, sink):
     pq = [(0, source, [])]
@@ -61,6 +61,7 @@ def shortest_augmenting_path_old(graph, source, sink):
                 heapq.heappush(pq, (0, neighbor, path + [(current, neighbor, 1)]))
     return []
 
+
 def dfs_like(graph, source, sink):
     pq = [(float('inf'), source, [])]
     heapq.heapify(pq)
@@ -76,6 +77,7 @@ def dfs_like(graph, source, sink):
             if neighbor not in visited and capacity > 0:
                 heapq.heappush(pq, ((-1) * len(path), neighbor, path + [(current, neighbor, capacity)]))
     return []
+
 
 def max_capacity(graph, source, sink):
     pq = [(-float('inf'), source, [])]
@@ -93,6 +95,7 @@ def max_capacity(graph, source, sink):
                 heapq.heappush(pq, (min(-capacity, len(path)), neighbor, path + [(current, neighbor, capacity)]))
     return []
 
+
 def random_augmenting_path(graph, source, sink):
     pq = [(random.random(), source, [])]
     heapq.heapify(pq)
@@ -109,23 +112,28 @@ def random_augmenting_path(graph, source, sink):
                 heapq.heappush(pq, (random.random(), neighbor, path + [(current, neighbor, capacity)]))
     return []
 
+
+
+
 def load_graph_from_file(file_path):
-    with open(file_path, 'r') as file:
+    file = open(file_path, 'r')
+    try:
         lines = file.readlines()
-    first_line = lines[0].strip().split(',')
-    n, r, upperCap, source, sink, total_edges = first_line
+        first_line = lines[0].strip().split(',')
+        n, r, upperCap, source, sink, total_edges = first_line
 
-    adjacency_matrix = [list(map(int, line.strip().split(','))) for line in lines[1:]]
-
-    return adjacency_matrix, int(n), float(r), int(upperCap), int(source), int(sink), int(total_edges)
+        adjacency_matrix = [list(map(int, line.strip().split(','))) for line in lines[1:]]
+        return adjacency_matrix, int(n), float(r), int(upperCap), int(source), int(sink), int(total_edges)
+    finally:
+        if file:
+            file.close()
 
 def run_simulations(graph, n, r, upperCap, source, sink, total_edges):
-
-    sap_flow, sap_paths, sap_mean_length, sap_mean_proportional_length = ford_fulkerson(graph, source, sink, shortest_augmenting_path_old)
+    sap_flow, sap_paths, sap_mean_length, sap_mean_proportional_length = ford_fulkerson(graph, source, sink,shortest_augmenting_path_old)
     dfs_flow, dfs_paths, dfs_mean_length, dfs_mean_proportional_length = ford_fulkerson(graph, source, sink, dfs_like)
-    maxcap_flow, maxcap_paths, maxcap_mean_length, maxcap_mean_proportional_length = ford_fulkerson(graph, source, sink, max_capacity)
-    rand_flow, rand_paths, rand_mean_length, rand_mean_proportional_length = ford_fulkerson(graph, source, sink, random_augmenting_path)
-
+    maxcap_flow, maxcap_paths, maxcap_mean_length, maxcap_mean_proportional_length = ford_fulkerson(graph, source, sink,max_capacity)
+    rand_flow, rand_paths, rand_mean_length, rand_mean_proportional_length = ford_fulkerson(graph, source, sink,random_augmenting_path)
+    
     data = [
         ["SAP", n, r, upperCap, sap_paths, sap_mean_length, sap_mean_proportional_length, total_edges, sap_flow],
         ["DFS", n, r, upperCap, dfs_paths, dfs_mean_length, dfs_mean_proportional_length, total_edges, dfs_flow],
@@ -133,7 +141,15 @@ def run_simulations(graph, n, r, upperCap, source, sink, total_edges):
         ["Random", n, r, upperCap, rand_paths, rand_mean_length, rand_mean_proportional_length, total_edges, rand_flow],
     ]
     headers = ["Algorithm", "n", "r", "upperCap", "paths", "ML", "MPL", "total edges", "flow"]
-    print(tabulate(data, headers=headers, tablefmt="grid"))
+    header_line = " | ".join(headers)
+    print(header_line)
+    print("-" * len(header_line))
+
+    # Print data
+    for row in data:
+        row_str = " | ".join(map(str, list(row)))  # Convert the map result to a list explicitly
+        print(row_str)
+
 
 # Example simulations
 simulation_values = [
@@ -144,14 +160,14 @@ simulation_values = [
     [100, 0.2, 50],
     [200, 0.2, 50],
     [100, 0.3, 50],
-    [200, 0.3, 50],
-    [200, 0.2, 30], # Custom parameters
-    [200, 0.25, 30] # Custom parameters
+    [200, 0.25, 50],
+    [200, 0.2, 30],  # Custom parameters
+    [200, 0.25, 30]  # Custom parameters
 ]
 
 for i, (n, r, upperCap) in enumerate(simulation_values):
     generate_source_sink_graph(n, r, upperCap, i)
 
 for i, (n, r, upperCap) in enumerate(simulation_values):
-    adjacency_matrix, n, r, upperCap, source, sink, total_edges = load_graph_from_file(f'source_sink_graph_{i}.txt')
-    run_simulations(adjacency_matrix, n, r, upperCap, source, sink, total_edges)
+    adjacency_matrix, n, r, upperCap, source, sink, total_edges = load_graph_from_file('source_sink_graph_%s.txt' % i)
+    run_simulations(adjacency_matrix, n, r, upperCap, source, sink,total_edges)
